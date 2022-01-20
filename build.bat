@@ -1,7 +1,7 @@
 @echo off
 cls
 echo vvvvvvvvvv-BUILD-LOG-vvvvvvvvvv
-g++ cdl.cpp -o cdl.exe -std=c++11
+c++ cdl.cpp -o cdl.exe -std=c++17
 echo ^^^^^^^^^^^^^^^^^^^^-BUILD-LOG-^^^^^^^^^^^^^^^^^^^^
 echo COMPILATION ERRORLEVEL: %errorlevel%
 if %errorlevel% EQU 0 (
