@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <iostream>
 namespace CDL {
 enum Colour {
     BLACK = 0x0000,
@@ -52,9 +53,6 @@ void draw_char(Char chr, COORD pos) {
 struct Texture {
     Char* chars;
     COORD dims;
-    void clear() {
-        delete[] chars;
-    }
 };
 void draw_texture(Texture tex, COORD pos) {
     for (SHORT i = 0; i < tex.dims.X; i++) {
@@ -66,8 +64,8 @@ void draw_texture(Texture tex, COORD pos) {
     }
 }
 
-Colour letter_to_colour(char hex){
-    switch(hex){
+Colour letter_to_colour(char letter){
+    switch(letter){
         case 'k':return BLACK;
         case 'b':return DARK_BLUE;
         case 'g':return DARK_GREEN;
@@ -109,7 +107,7 @@ void read_texture_file(std::string filename, COORD& dims, std::string& character
     dims = {width, height};
 }
 
-Texture texture_from_strings(COORD dims, std::string characters, std::string foreground, std::string background){
+Texture texture_from_info(COORD dims, std::string characters, std::string foreground, std::string background){
     int width = dims.X;
     int height = dims.Y;
     Char* chars = new Char[width * height];
@@ -129,11 +127,10 @@ Texture texture_from_strings(COORD dims, std::string characters, std::string for
     return t;
 }
 
-Texture texture_from_file(std::string filename) {
-    COORD dims;
-    std::string characters, foreground, background;
-    read_texture_file(filename, dims, characters, foreground, background);
-    return texture_from_strings(dims, characters, foreground, background);
+void init(int buff_height){
+    for(int i = 0; i < buff_height-1; i++){
+        std::cout << '\n';
+    }
 }
 
 }  // namespace CDL
