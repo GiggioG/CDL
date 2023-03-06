@@ -3,124 +3,140 @@ ConsoleDrawingLibrary is a c++ library for drawing in the console on windows.
 
 ## Documentation
 ### Overall info
-CDL is a c++ library, contained in `cdl.h`. All of it is contained in the `CDL` namespace.
-### Initialisation
-You need to initialise CDL before using it. `CDL::init` requires the number of rows you will use.
-```c++
-CDL::init(4);
+CDL is a c++ library, contained in `cdl.cpp`. All of it is contained in the `CDL` namespace.
+### Initialisation and exiting
+You need to initialise CDL before using it. `CDL::init` requires a `SMALL_RECT` of the part of the console window you will use.
+```cpp
+SMALL_RECT rect;
+rect.Left = 1;
+rect.Top = 1;
+rect.Right = 45;
+rect.Bottom = 15;
+CDL::init(rect);
 ```
+The rect is saved in `CDL::canvas`, and its size in `CDL::canvasSize`.  
+You also must call `CDL::exit` before the end, to free memory used by the library.
 ### CDL::Colour
-Colour is a `UCHAR` that represents a colour. It's values are a part of this enum.
-```c++
-enum Colour {
-    BLACK = 0x0000,         //k
-    DARK_BLUE = 0x0001,     //b
-    DARK_GREEN = 0x0002,    //g
-    DARK_CYAN = 0x0003,     //c
-    DARK_RED = 0x0004,      //r
-    DARK_MAGENTA = 0x0005,  //m
-    DARK_YELLOW = 0x0006,   //y
-    GREY = 0x0007,          //w
-    DARK_GREY = 0x0008,     //K
-    BLUE = 0x0009,          //B
-    GREEN = 0x000A,         //G
-    CYAN = 0x000B,          //C
-    RED = 0x000C,           //R
-    MAGENTA = 0x000D,       //M
-    YELLOW = 0x000E,        //Y
-    WHITE = 0x000F          //W
-};
+Colour is a `UCHAR` that represents a colour. You have the following pre-defined; There aren't any other possible colours.
+```cpp
+BLACK        = 0x0;
+DARK_BLUE    = 0x1;
+DARK_GREEN   = 0x2;
+DARK_CYAN    = 0x3;
+DARK_RED     = 0x4;
+DARK_MAGENTA = 0x5;
+DARK_YELLOW  = 0x6;
+GREY         = 0x7;
+DARK_GREY    = 0x8;
+BLUE         = 0x9;
+GREEN        = 0xA;
+CYAN         = 0xB;
+RED          = 0xC;
+MAGENTA      = 0xD;
+YELLOW       = 0xE;
+WHITE        = 0xF;
 ```
 ### CDL::Palette
-A palette is a pair of colour representing a foreground and background colour pair. They are made from `OR`-ing two `CDL::Colour`-s with the one representing the background being shifted left by 4 bits.
-```c++
-typedef UCHAR Palette;
-Palette make_palette(Colour fg, Colour bg) {
-    return fg | (bg << 4);
-}
+A palette is a pair of colours representing a foreground and background colour pair. The default palette is white on black.
+```cpp
+/// Palette(Colour foreground, Colour background);
+CDL::Palette p = CDL::Palette(CDL::CYAN, CDL::BLACK);
+```
+It can be converted from/to the `CHAR_INFO.Attributes`:
+```cpp
+CDL::Palette p = CDL::Palette((0x0<<4) | 0xb);
+```
+```cpp
+CHAR_INFO ci;
+ci.Attributes = CDL::Palette(CDL::CYAN, CDL::BLACK).getCInfoAttrib();
+```
+You an also get it from a string, which specifies the foreground first and the background second.
+```cpp
+CDL::Palette p = CDL::Palette("b0"); // case insensitive
 ```
 ### CDL::Char
-A `CDL::Char` represents a grouping of a `UCHAR` and a `CDL::Palette`. It is nearly equivalent to the windows api type `CHAR_INFO`. The character part can be `ascii 0`, that represents that the Char is "transparent" and shouldn't be drawn.
-```c++
-struct Char {
-    UCHAR chr;
-    Palette pal;
-    Char(UCHAR _chr, Palette _pal)
-        : chr(_chr), pal(_pal) {}
-    Char() {
-        chr = 0;
-        pal = BLACK;
-    }
-};
+A `CDL::Char` represents a grouping of a `char` and a `CDL::Palette`. It is nearly equivalent to the windows api type `CHAR_INFO`. The default `CDL::Char` is `'\0'` with the default `CDL::Palette`.  
+You can get a `CDL::Char` from a `char`, with the default palette:
+```cpp
+CDL::Char c = CDL::Char('c');
 ```
-A `CDL::Char` can be drawn at a given position, represented by a windows api `COORD` object with the `CDL::draw_char` function.
-```c++
-void draw_char(Char chr, COORD pos)
+Or with a palette:
+```cpp
+CDL::Char c = CDL::Char('c', CDL::Palette(CDL::CYAN, CDL::BLACK));
+```
+You can also convert it from/to `CHAR_INFO`:
+```cpp
+CDL::Char c = CDL::Char('c');
+CHAR_INFO ci = c.getCInfo();
+```
+```cpp
+CHAR_INFO ci;
+CDL::Char c = CDL::Char(ci);
+```
+And you can also use a 3-character string, representing it. The first one is the character and the second and third ones are the palette.
+```cpp
+CDL::Char c = CDL::Char("cB0"); // palette - case insensitive
+```
+
+You can aquire a `Char` array with `CDL::charsFromText`, which accepts a `std::string` and an optional `CDL::Palette` (default if ommited).
+```cpp
+Char* carr1 = charsFromText("abcd");
+Char* carr2 = charsFromText("abcd", CDL::Palette("b0"));
 ```
 ### CDL::Texture
-Textures are the most complex structures in CDL. A `CDL::Texture` encapsualtes an array of `CDL::Char`-s and a `COORD` that describes the dimesions of the texture. It is required, because a texture with a text component "abcd" can be any of these:
+The Texture contains an array of `CDL::Char` and a `COORD`, which records the dimensions of the texture. The default texture is empty and is `0x0`.  
+If you initialise a `CDL::Texture` with just dimensions, then it will fill up with default `CDL::Char`:
+```cpp
+CDL::Texture t = CDL::Texture({3, 2});
 ```
-abcd    a   ab
-        b   cd   
-        c
-        d
+You can of course give it dimensions and a Char array:
+```cpp
+Char* chrs = new Char[6]; // aquire it somehow
+CDL::Texture t = CDL::Texture({3, 2}, chrs);
 ```
-It works like this:
-```c++
-struct Texture {
-    Char* chars;
-    COORD dims;
-};
+If you pass just one Char, then it will be repeated:
+```cpp
+CDL::Texture t = CDL::Texture({3, 2}, CDL::Char("cb0"));
 ```
-You can draw a texture to specific coordinates (they are of the top-left corner) with the `CDL::draw_texture` function.
-```c++
-void draw_texture(Texture tex, COORD pos)
+...and if you past only the Char, 1x1 is assumed:
+```cpp
+CDL::Texture t = CDL::Texture(CDL::Char("cb0"));
 ```
-### Texture info
-A texture can be represented by a `COORD`(dimensions) and 3 `std::string`-s: one for the text content, one for the foreground colours and one for the background colours. The colours are in a format that is explained in the comment on [this](#cdlcolour) block of code.
-You can read these 4 peaces of info with the `CDL::read_texture_file` function.
-```c++
-void read_texture_file(std::string filename, COORD& dims, std::string& characters, std::string& foreground, std::string& background)
+Textures, like Palettes and Chars can be initialised by a special string format, which is:
 ```
-It should be used like this:
-```c++
-COORD dims;
-std::string characters, foreground, background;
-read_texture_file("example.cdlt", dims, characters, foreground, background);
+<width>,<height>,<width*height Chars>
 ```
-It reads from a file in a format explained [here](#the-texture-file-format).
-The `CDL::texture_from_info` function creates a `CDL::Texture` from texture info.
-```c++
-Texture texture_from_info(COORD dims, std::string characters, std::string foreground, std::string background)
+example:
+```cpp
+CDL::Texture t = CDL::Texture("2,3,.01,6e/b2:fd'f0'45");
+//or from a buffer, with an extra option to delete[] it
+char* buff; // aquire it somehow
+CDL::Texture t = CDL::Texture(buff, true); // true = delete[] the buffer
 ```
-### The texture file format
-The `CDL Texture` file format (extension `cdlt`) is structured in the following way:
-On the first row are 2 numbers: the first one is the width of the texture and the second one is the height.
-> For easier explaining purposes they will be henceforth called W and H.
-This row is followed by 3 matrices seperated by newlines: H rows of W characters.
-The first one represents the `characters` aspect of the texture info.
-The second one is the `foreground`.
-And the third one is the `background`.
-Here is an example:
-```cdlt
-2 3
+for ![image of the texture](https://i.imgur.com/AYqVeL0.png)
+### Loading from files
+`CDL` includes the general-purpose function
+```cpp
+char* CDL::readFile(std::string filename)
+```
+The buffer it returns has size `<fileSize>+1` and the extra one is a `\0`.
 
-AB
-CD
-EF
 
-gM
-Br
-Yc
-
-kk
-ww
-kk
+This function is utilised by
+```cpp
+Texture CDL::loadTexture(std::string filename)
 ```
-and it represents this texture:
-![CDLT example](https://i.imgur.com/Db5aZAm.png)
-### Other things
-The `CDL::letter_to_colour` function converts a letter encoded like [here](#cdlcolour) to a `CDL::Colour` object.
-```c++
-Colour letter_to_colour(char letter)
+### Drawing things
+To draw a texture, you need to call
+```cpp
+void CDL::drawTexture(const Texture& t, COORD coord)
+```
+```cpp
+CDL::Texture t; // aquire somehow
+CDL::drawTexture(t, {1, 2});
+```
+
+To clear the canvas (fill it with default `Char`), call 
+```cpp
+void CDL::clear()
 ```
