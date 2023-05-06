@@ -16,6 +16,13 @@ CDL::init(rect);
 ```
 The rect is saved in `CDL::canvas`, and its size in `CDL::canvasSize`.  
 You also must call `CDL::exit` before the end, to free memory used by the library.
+### Setting the top left corner
+You can set what coordinate coresponds to the top left corner
+of the RECT you are using.
+```cpp
+CDL::setTopLeft({-5, -5});
+```
+It is saved in `CDL::topLeftCorner`.
 ### CDL::Colour
 Colour is a `UCHAR` that represents a colour. You have the following pre-defined; There aren't any other possible colours.
 ```cpp
@@ -126,17 +133,48 @@ This function is utilised by
 ```cpp
 Texture CDL::loadTexture(std::string filename)
 ```
-### Drawing things
+## Drawing things
 To draw a texture, you need to call
+### Clearing
+To clear the canvas (fill it with default `Char`), call 
 ```cpp
-void CDL::drawTexture(const Texture& t, COORD coord)
+void CDL::clear()
+```
+
+### Textures
+```cpp
+void CDL::drawTexture(const Texture& t, COORD coord, bool screenCoords=0)
 ```
 ```cpp
 CDL::Texture t; // aquire somehow
 CDL::drawTexture(t, {1, 2});
 ```
+If `screenCoords` is set, then it will ignore setTopLeft.
 
-To clear the canvas (fill it with default `Char`), call 
+### Chars
 ```cpp
-void CDL::clear()
+void CDL::drawChar(Char c, COORD coord, bool screenCoords=0);
+```
+
+## Plotting
+### Axes
+You can use this function to draw coordinate axes on the screen.
+```cpp
+void CDL::drawAxes();
+```
+
+### Points
+You can use this function to plot a point (draw a '@' with the default Palette).
+```cpp
+void CDL::plot(COORD point, bool screenCoords=false);
+```
+
+### Lines
+You can use this function to plot a line. 
+```cpp
+void CDL::line(COORD a, COORD b, bool screenCoords=false);
+```
+The coordinates of the points are multiplied by `CDL::linePlotScaleFactor`. You can change this factor with the `CDL::setLinePlotScaleFactor` function.
+```cpp
+void setLinePlotScaleFactor(int factor);
 ```
